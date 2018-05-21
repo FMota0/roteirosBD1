@@ -10,7 +10,7 @@ CREATE TYPE estado_nordeste AS ENUM
 ('AL', 'BA', 'CE', 'MA', 'PB', 'PE', 'PI', 'RN', 'SE');
 
 CREATE TYPE caracteristica_medicamento AS ENUM
-('venda exclusiva', 'receita');
+('venda exclusiva', 'sem receita');
 
 CREATE TABLE farmacias (
 
@@ -150,8 +150,10 @@ CREATE TABLE enderecos_do_cliente (
 
     -- verificando a validade do tamanho do cep
     CONSTRAINT cep_sz_chk
-    CHECK(LENGTH(cep) = 8)
+    CHECK(LENGTH(cep) = 8),
 
+    CONSTRAINT cep_num_cpfCliente_uniq
+    UNIQUE(cep, numero, cpf_do_cliente)
 );
 
 CREATE TABLE vendas (
@@ -171,7 +173,7 @@ CREATE TABLE vendas (
     -- referenciando cliente
     CONSTRAINT cliente_fkey
     FOREIGN KEY (cpf_cliente)
-    REFERENCES cliente(cpf),
+    REFERENCES clientes(cpf),
 
     -- referenciando funcionario
     CONSTRAINT funcionarios_fkey
@@ -181,8 +183,8 @@ CREATE TABLE vendas (
 
     -- referenciando medicamento
     CONSTRAINT medicamento_fkey
-    FOREIGN KEY (identificador_medicamento, caracteristica_medicamento)
-    REFERENCES medicamento(identificador, caracteristica)
+    FOREIGN KEY (identificador_medicamento, caracteristica_do_medicamento)
+    REFERENCES medicamentos(identificador, caracteristica)
     ON DELETE RESTRICT,
 
     -- verificando validade do funcionario que fez a venda
@@ -194,7 +196,11 @@ CREATE TABLE vendas (
     PRIMARY KEY (identificador),
 
     CONSTRAINT venda_exclusiva_chk
-    CHECK(caracteristica_do_medicamento != 'receita' or (caracteristica_do_medicamento = 'venda exclusiva' and identificador_medicamento IS NOT NULL))
+    CHECK(caracteristica_do_medicamento != 'venda exclusiva' or (caracteristica_do_medicamento = 'venda exclusiva' and identificador_medicamento IS NOT NULL)),
+
+    CONSTRAINT identificador_cpf_uniq
+    UNIQUE(identificador, cpf_cliente)
+
 );
 
 CREATE TABLE entregas (
@@ -203,7 +209,7 @@ CREATE TABLE entregas (
     cpf_cliente_venda varchar(11),
     cep_endereco varchar(8),
     numero_endereco integer,
-    cpf_cliente_endereco,
+    cpf_cliente_endereco varchar(11),
 
     -- referenciando venda
     CONSTRAINT venda_fkey
