@@ -10,7 +10,7 @@ CREATE TYPE estado_nordeste AS ENUM
 ('AL', 'BA', 'CE', 'MA', 'PB', 'PE', 'PI', 'RN', 'SE');
 
 CREATE TYPE caracteristica_medicamento AS ENUM
-('venda exlusiva', 'receita');
+('venda exclusiva', 'receita');
 
 CREATE TABLE farmacias (
 
@@ -91,28 +91,11 @@ CREATE TABLE medicamentos (
 
     -- definindo primary key
     CONSTRAINT medicamentos_pkey
-    PRIMARY KEY (identificador)
+    PRIMARY KEY (identificador),
 
-);
-
-CREATE TABLE vendas (
-
-    cpf_funcionario varchar(11),
-
-    tipo_do_funcionario tipo_funcionario,
-
-    -- referenciando funcionario
-    CONSTRAINT funcionarios_fkey
-    FOREIGN KEY (cpf_funcionario, tipo_do_funcionario)
-    REFERENCES funcionarios(cpf, tipo),
-
-    -- verificando validade do funcionario que fez a venda
-    CONSTRAINT tipo_funcionario_chk
-    CHECK (tipo_do_funcionario = 'vendedor')
-);
-
-CREATE TABLE entregas (
-
+    -- definindo tupla(identificador, caracteristica) como uma chave unica por conter identificador
+    CONSTRAINT identificador_caracteristica_uniq
+    UNIQUE(identificador, caracteristica)
 );
 
 CREATE TABLE clientes (
@@ -146,6 +129,8 @@ CREATE TABLE enderecos_do_cliente (
 
     estado varchar(2),
 
+    cep varchar(8),
+
     tipo_da_residencia tipo_endereco,
 
     cpf_do_cliente varchar(11),
@@ -157,6 +142,81 @@ CREATE TABLE enderecos_do_cliente (
     -- referenciando o cliente
     CONSTRAINT cliente_fkey
     FOREIGN KEY (cpf_do_cliente)
-    REFERENCES clientes(cpf)
+    REFERENCES clientes(cpf),
+
+    -- definindo primary key
+    CONSTRAINT endereco_pkey
+    PRIMARY KEY (cep, numero),
+
+    -- verificando a validade do tamanho do cep
+    CONSTRAINT cep_sz_chk
+    CHECK(LENGTH(cep) = 8)
+
+);
+
+CREATE TABLE vendas (
+
+    identificador serial,
+
+    cpf_funcionario varchar(11),
+
+    tipo_do_funcionario tipo_funcionario,
+
+    identificador_medicamento integer,
+
+    caracteristica_do_medicamento caracteristica_medicamento,
+
+    cpf_cliente varchar(11),
+
+    -- referenciando cliente
+    CONSTRAINT cliente_fkey
+    FOREIGN KEY (cpf_cliente)
+    REFERENCES cliente(cpf),
+
+    -- referenciando funcionario
+    CONSTRAINT funcionarios_fkey
+    FOREIGN KEY (cpf_funcionario, tipo_do_funcionario)
+    REFERENCES funcionarios(cpf, tipo)
+    ON DELETE RESTRICT,
+
+    -- referenciando medicamento
+    CONSTRAINT medicamento_fkey
+    FOREIGN KEY (identificador_medicamento, caracteristica_medicamento)
+    REFERENCES medicamento(identificador, caracteristica)
+    ON DELETE RESTRICT,
+
+    -- verificando validade do funcionario que fez a venda
+    CONSTRAINT tipo_funcionario_chk
+    CHECK (tipo_do_funcionario = 'vendedor'),
+
+    -- definindo primary key
+    CONSTRAINT vendas_pkey
+    PRIMARY KEY (identificador),
+
+    CONSTRAINT venda_exclusiva_chk
+    CHECK(caracteristica_do_medicamento != 'receita' or (caracteristica_do_medicamento = 'venda exclusiva' and identificador_medicamento IS NOT NULL))
+);
+
+CREATE TABLE entregas (
+
+    identificador_venda integer,
+    cpf_cliente_venda varchar(11),
+    cep_endereco varchar(8),
+    numero_endereco integer,
+    cpf_cliente_endereco,
+
+    -- referenciando venda
+    CONSTRAINT venda_fkey
+    FOREIGN KEY (identificador_venda, cpf_cliente_venda)
+    REFERENCES vendas(identificador, cpf_cliente),
+
+    -- referenciando endereco
+    CONSTRAINT endereco_fkey
+    FOREIGN KEY (cep_endereco, numero_endereco, cpf_cliente_endereco)
+    REFERENCES enderecos_do_cliente(cep, numero, cpf_do_cliente),
+
+    -- verificando validade do endereco do cliente
+    CONSTRAINT cpf_chk
+    CHECK(cpf_cliente_venda = cpf_cliente_endereco)
 
 );
