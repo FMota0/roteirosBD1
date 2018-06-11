@@ -70,6 +70,6 @@ FROM project AS proj, works_on AS work, employee AS empl
 WHERE proj.pnumber = work.pno and work.essn = empl.ssn;
 
 --Q18
-SELECT depe.dependent_name
-FROM works_on AS work, dependent AS depe
-WHERE work.essn = depe.essn and work.pno = 91;
+SELECT empl.fname, depe.dependent_name, depe.relationship
+FROM works_on AS work, dependent AS depe, employee AS empl
+WHERE work.essn = depe.essn and work.pno = 91 and work.essn = empl.ssn;
