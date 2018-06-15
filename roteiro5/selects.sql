@@ -35,7 +35,17 @@ FROM (
 ) AS qtd_on_proj;
 
 -- Q7
-SELECT
+SELECT pno AS num_projeto, COUNT(*) AS qtd_func
+FROM works_on
+GROUP BY pno
+HAVING COUNT(*) = ALL(
+    SELECT MIN(qtd_funcionarios) AS qtd
+    FROM (
+        SELECT pno, COUNT(*) AS qtd_funcionarios
+        FROM works_on
+        GROUP BY pno
+    ) AS qtd_on_proj
+);
 
 -- Q8
 SELECT work.pno AS num_proj, AVG(empl.salary) AS media_sal
@@ -59,26 +69,11 @@ WHERE (work.pno IS NULL or work.pno != 92) and NOT EXISTS (
 )
 ORDER BY empl.salary;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 -- Q11
+SELECT empl.ssn, SUM(CASE WHEN work.essn IS NULL THEN 0 ELSE 1 END) AS qtd_proj
+FROM (employee AS empl LEFT OUTER JOIN works_on AS work ON empl.ssn = work.essn)
+GROUP BY empl.ssn
+ORDER BY qtd_proj;
 
 -- Q12
 SELECT work.pno AS num_proj, COUNT(*) AS qtd_func
@@ -87,6 +82,21 @@ GROUP BY work.pno
 HAVING COUNT(*) < 5;
 
 -- Q13
+SELECT empl.fname
+FROM employee AS empl
+WHERE EXISTS (
+    SELECT *
+    FROM works_on AS work
+    WHERE work.essn = empl.ssn AND EXISTS (
+        SELECT *
+        FROM project AS proj
+        WHERE proj.pnumber = work.pno AND proj.plocation = 'Sugarland'
+    )
+) AND EXISTS (
+    SELECT *
+    FROM dependent AS depe
+    WHERE depe.essn = empl.ssn
+);
 
 -- Q14
 SELECT dname
@@ -97,3 +107,12 @@ WHERE NOT EXISTS (
 );
 
 -- Q15
+SELECT empl.fname, empl.lname
+FROM employee AS empl
+WHERE empl.ssn != '123456789' AND NOT EXISTS (
+    SELECT * FROM works_on AS work
+    WHERE work.essn = '123456789' and NOT EXISTS (
+        SELECT * FROM works_on AS work2
+        WHERE work2.essn = empl.ssn AND work2.pno = work.pno
+    )
+);
